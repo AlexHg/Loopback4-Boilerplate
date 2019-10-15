@@ -36,5 +36,25 @@ Run the project
 npm start
 ```
 
+
+## Create Controllers
+
+## Create Models
+
+## Create Repositories
+
+## Create Datasources
+
+## Create Services
+
+
+## Add Environment Variables
+Insert a new line in the .env file following the file style, when thats complete, you can add the env.var in your code like
+```
+process.env.ENVIRONMENT_VAR
+```
+
+
+
 ## ENDPOINT DOCUMENTATION
 Go to http://localhost:3000/explorer in your explorer to see the documentation.
