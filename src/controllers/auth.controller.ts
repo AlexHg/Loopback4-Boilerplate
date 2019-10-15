@@ -42,7 +42,7 @@ export class AuthController {
     const user = await this.userRepository.findOne({ where: { id: credentials.username } });
     if (!user) throw new HttpErrors.Unauthorized('Invalid credentials');
 
-    console.log(user);
+    //console.log(user);
     //const isPasswordMatched = user.password === credentials.password;
     const isPasswordMatched = await this.passwordHasher.comparePassword(
       credentials.password,

@@ -1,8 +1,8 @@
 {
   "name": "mongo",
   "connector": "mongodb",
-  "url": "mongodb+srv://admin014digital:eG5b3X7QK4vY9H6j@donpagossandbox-x4nnp.mongodb.net/donpagos4",
-  "database": "donpagos4",
+  "url": "mongodb+srv://admin014digital:eG5b3X7QK4vY9H6j@donpagossandbox-x4nnp.mongodb.net/donpagos",
+  "database": "donpagos",
   "useNewUrlParser": true,
   "useUnifiedTopology": true
 }
