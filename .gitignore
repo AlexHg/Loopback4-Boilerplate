@@ -56,6 +56,7 @@ typings/
 
 # dotenv environment variables file
 .env
+switcher_backup.env
 
 # Generated apidocs
 api-docs/
