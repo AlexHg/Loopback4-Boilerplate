@@ -8,9 +8,11 @@ import { inject } from '@loopback/core';
 import { SecurityBindings, UserProfile, securityId } from '@loopback/security';
 import { PasswordHasher } from '../services/hash.password.bcryptjs';
 import { PasswordHasherBindings } from '../keys';
+import { Mailer } from '../services/mailer.service';
 
 const { sign } = require('jsonwebtoken');
 const signAsync = promisify(sign);
+
 
 export class AuthController {
   constructor(
@@ -29,6 +31,13 @@ export class AuthController {
     // if not exists
     if (!foundUser) {
       user.password = await this.passwordHasher.hashPassword(user.password);
+
+      await (new Mailer).sendMail({
+        to: user.email,
+        subject: "Confirmación de correo",
+        html: `<p>${user.password}</p>`
+      });
+
       return await this.userRepository.create(user);
     }
     //if it exists, throw error

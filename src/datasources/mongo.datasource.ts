@@ -5,17 +5,22 @@ import {
   ValueOrPromise,
 } from '@loopback/core';
 import { juggler } from '@loopback/repository';
-import * as config from './mongo.datasource.json';
 
 @lifeCycleObserver('datasource')
 export class MongoDataSource extends juggler.DataSource
   implements LifeCycleObserver {
   static dataSourceName = 'mongo';
 
-  constructor(
-    @inject('datasources.config.mongo', { optional: true })
-    dsConfig: object = config,
-  ) {
+  constructor() {
+    const dsConfig = {
+      name: MongoDataSource.dataSourceName,
+      connector: "mongodb",
+      url: process.env.DB_URL,
+      database: process.env.DB_NAME,
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    }
+
     super(dsConfig);
   }
 

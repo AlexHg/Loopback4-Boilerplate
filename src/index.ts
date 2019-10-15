@@ -1,9 +1,10 @@
-import {Lb4JwtRoleBasedAuthSampleApplication} from './application';
-import {ApplicationConfig} from '@loopback/core';
+import { Lb4JwtRoleBasedAuthSampleApplication } from './application';
+import { ApplicationConfig } from '@loopback/core';
 
-export {Lb4JwtRoleBasedAuthSampleApplication};
+export { Lb4JwtRoleBasedAuthSampleApplication };
 
 export async function main(options: ApplicationConfig = {}) {
+  require('dotenv').config();
   const app = new Lb4JwtRoleBasedAuthSampleApplication(options);
   await app.boot();
   await app.migrateSchema();

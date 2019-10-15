@@ -6,5 +6,4 @@
   },
   "include": ["src"],
   "experimentalDecorators": true
-
 }
