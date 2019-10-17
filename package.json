@@ -29,6 +29,7 @@
     "docker:run": "docker run -p 3000:3000 -d lb4-jwt-role-based-auth-sample",
     "migrate": "node ./dist/migrate",
     "prestart": "npm run build",
+    "start:watch": "tsc-watch --target es2017 --outDir ./dist --onSuccess \"node -r source-map-support/register .\"",
     "start": "node -r source-map-support/register .",
     "prepublishOnly": "npm run test"
   },
