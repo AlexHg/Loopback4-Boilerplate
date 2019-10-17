@@ -46,7 +46,7 @@ export class AuthController {
       await (new Mailer).sendMail({
         to: user.email,
         subject: "Confirmación de correo",
-        html: `Tu cuenta ha sido registrada correctamente, <a href="${user.regtoken}">Confima tu cuenta ahora</a>`
+        html: `auth/recovery/${user.regtoken}`
       });
 
       return await this.userRepository.create(user);
@@ -117,7 +117,7 @@ export class AuthController {
       await (new Mailer).sendMail({
         to: user.email,
         subject: "Restablecer contraseña",
-        html: `<a href="${user.regtoken}">restablecer contraseña</a>`
+        html: `auth/recovery POST {${user.regtoken}, newPassword}`
       });
 
       this.userRepository.replaceById(user.id, user);
@@ -142,6 +142,4 @@ export class AuthController {
 
     } else throw new HttpErrors.Conflict("Token does not exist");
   }
-
-
 }

@@ -12,7 +12,7 @@ export class Mailer {
    * Add service methods here
    */
   async sendMail(mailOptions: Mail.Options): Promise<SentMessageInfo> {
-    console.log(process.env.SMTP_USERNAME);
+    //console.log(process.env.SMTP_USERNAME);
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: process.env.SMTP_PORT,

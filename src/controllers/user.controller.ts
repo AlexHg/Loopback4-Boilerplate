@@ -56,7 +56,7 @@ export class UserController {
     // (@jannyHou)FIXME: explore a way to generate OpenAPI schema
     // for symbol property
     currentUserProfile.id = currentUserProfile[securityId];
-    console.log(currentUserProfile);
+    //console.log(currentUserProfile);
     delete currentUserProfile[securityId];
     return currentUserProfile;
   }
@@ -73,7 +73,7 @@ export class UserController {
     // (@jannyHou)FIXME: explore a way to generate OpenAPI schema
     // for symbol property
     currentUserProfile.id = currentUserProfile[securityId];
-    console.log(currentUserProfile);
+    //console.log(currentUserProfile);
     delete currentUserProfile[securityId];
 
     const user = await this.userRepository.findOne({ where: { id: currentUserProfile.id } });
