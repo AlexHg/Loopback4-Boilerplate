@@ -1,4 +1,4 @@
-import { get, post, requestBody, HttpErrors } from '@loopback/rest';
+import { get, post, requestBody, HttpErrors, getModelSchemaRef, param } from '@loopback/rest';
 import { User } from '../models';
 import { UserRepository, UserRoleRepository } from '../repositories';
 import { repository } from '@loopback/repository';
@@ -23,25 +23,56 @@ export class AuthController {
 
   @post('/auth/register')
   @secured(SecuredType.PERMIT_ALL)
-  async register(@requestBody() user: User): Promise<User> {
+  async register(@requestBody({
+    content: {
+      'application/json': {
+        schema: getModelSchemaRef(User, {
+          title: 'NewUser',
+          exclude: ['status', 'regtoken'],
+        }),
+      },
+    },
+  }) user: User): Promise<User> {
     const foundUser = await this.userRepository.findOne({
       where: { email: user.email }
     });
 
     // if not exists
     if (!foundUser) {
+      user.status = false;
+      user.regtoken = await this.passwordHasher.hashPassword(user.email + user.password);
       user.password = await this.passwordHasher.hashPassword(user.password);
 
       await (new Mailer).sendMail({
         to: user.email,
         subject: "Confirmación de correo",
-        html: `<p>${user.password}</p>`
+        html: `Tu cuenta ha sido registrada correctamente, <a href="${user.regtoken}">Confima tu cuenta ahora</a>`
       });
 
       return await this.userRepository.create(user);
     }
     //if it exists, throw error
     throw new HttpErrors.Conflict("Email value is already taken (ScopedCode:1)");
+  }
+
+  @post('/auth/confirm/{token}')
+  @secured(SecuredType.PERMIT_ALL)
+  async confirm(@param.path.string('token') token: string): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: { regtoken: token }
+    });
+
+    // if not exists
+    if (user) {
+      user.status = true;
+      user.regtoken = "";
+      user.password = await this.passwordHasher.hashPassword(user.password);
+
+      this.userRepository.replaceById(user.id, user);
+      //return user.email + " confirmado correctamente";
+    }
+    //if it exists, throw error
+    throw new HttpErrors.Conflict("Token does not exists");
   }
 
   @post('/auth/login')
@@ -70,6 +101,46 @@ export class AuthController {
       email,
       roles: roles.map(r => r.roleId),
     };
+  }
+
+  @post('/auth/recovery')
+  @secured(SecuredType.PERMIT_ALL)
+  async recovery(@requestBody() req: { email: string }): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: { email: req.email }
+    });
+
+    // if not exists
+    if (user) {
+      user.regtoken = await this.passwordHasher.hashPassword(user.email + "recoveryToken");
+
+      await (new Mailer).sendMail({
+        to: user.email,
+        subject: "Restablecer contraseña",
+        html: `<a href="${user.regtoken}">restablecer contraseña</a>`
+      });
+
+      this.userRepository.replaceById(user.id, user);
+
+    } else throw new HttpErrors.Conflict("Email does not exist");
+  }
+
+
+  @post('/auth/recovery-confirm')
+  @secured(SecuredType.PERMIT_ALL)
+  async recoveryConfirm(@requestBody() req: { token: string, password: string }): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: { regtoken: req.token }
+    });
+
+    // if not exists
+    if (user) {
+      user.regtoken = "";
+      user.password = await this.passwordHasher.hashPassword(req.password);
+
+      this.userRepository.replaceById(user.id, user);
+
+    } else throw new HttpErrors.Conflict("Token does not exist");
   }
 
 
