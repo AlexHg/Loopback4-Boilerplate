@@ -19,9 +19,16 @@ export class UserController {
     @inject(PasswordHasherBindings.PASSWORD_HASHER) public passwordHasher: PasswordHasher,
   ) { }
 
-  @post('/users/create')
+  @post('/users/create', {
+    responses: {
+      '200': { description: 'Retorna el usuario y email' },
+      '400': { description: 'Faltan datos en la petición' },
+      '409': { description: 'Error de conflicto: El Email ya existe' }
+    }
+  })
   @secured(SecuredType.HAS_ANY_ROLE, ["ADMIN", "ADMIN2"])
   async createUser(@requestBody({
+    description: "<h3>Registro privado de usuarios.</h3><p>Usuarios con alguno de los roles ['ADMIN','ADMIN2'] podrán crear usuarios con status=true saltandose la confirmación de correo electrónico.</p>",
     content: {
       'application/json': {
         schema: getModelSchemaRef(User, {
@@ -31,6 +38,7 @@ export class UserController {
       },
     },
   }) user: User): Promise<User> {
+    if (!user.email || !user.password || !user.id) throw new HttpErrors.BadRequest('Missing Username, Password or Email');
     const foundUser = await this.userRepository.findOne({
       where: { email: user.email }
     });
@@ -46,10 +54,12 @@ export class UserController {
     throw new HttpErrors.Conflict("Email value is already taken (ScopedCode:1)");
   }
 
-
   @get('/profiles/me')
   @secured(SecuredType.IS_AUTHENTICATED)
   async printCurrentUser(
+    @requestBody({
+      description: "<h3>Perfil de usuario.</h3><p>Cuando un usuario que ha iniciado sesión e ingresa a esta ruta con su token de autenticación, obtendrá los datos de su perfil.</p>",
+    }) req: any,
     @inject(SecurityBindings.USER)
     currentUserProfile: UserProfile,
   ): Promise<UserProfile> {
@@ -66,7 +76,9 @@ export class UserController {
   async changePasswordUser(
     @inject(SecurityBindings.USER)
     currentUserProfile: UserProfile,
-    @requestBody() resetPasswordRequest: ResetPasswordRequest,
+    @requestBody({
+      description: "<h3>Perfil de usuario.</h3><p>Cuando un usuario que ha iniciado sesión e ingresa a esta ruta con su token de autenticación, obtendrá los datos de su perfil.</p>",
+    }) resetPasswordRequest: ResetPasswordRequest,
 
   ): Promise<UserProfile> {
     //ME QUEDÉ AQUI

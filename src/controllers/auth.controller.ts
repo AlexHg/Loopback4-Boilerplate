@@ -49,13 +49,14 @@ export class AuthController {
     // if not exists
     if (!foundUser) {
       user.status = false;
-      user.regtoken = await this.passwordHasher.hashPassword(user.email + user.password);
       user.password = await this.passwordHasher.hashPassword(user.password);
+      user.regtoken = await this.passwordHasher.hashPassword(user.email + user.password);
+      user.regtoken = user.regtoken.replace(/[^\w\s]/gi, '');
 
       await (new Mailer).sendMail({
         to: user.email,
         subject: "Confirmación de correo",
-        html: `auth/recovery/${user.regtoken}`
+        html: `auth/confirm/${user.regtoken}`
       });
 
       const newUser = await this.userRepository.create(user);
@@ -72,9 +73,11 @@ export class AuthController {
     }
   })
   @secured(SecuredType.PERMIT_ALL)
-  async confirm(@requestBody({
-    description: "<h3>Confirmación publica de usuarios.</h3><p>Los usuarios registrados recibirán un correo electrónico con un token que deberán ingresar como parametro; de esta petición de forma que posteriormente podrán iniciar sesión</p>",
-  }) @param.path.string('token') token: string): Promise<void> {
+  async confirm(
+    @param.path.string('token', {
+      description: "<h3>Confirmación publica de usuarios.</h3><p>Los usuarios registrados recibirán un correo electrónico con un token que deberán ingresar como parametro; de esta petición de forma que posteriormente podrán iniciar sesión</p>",
+    }) token: string): Promise<void> {
+    //console.log(token);
     const user = await this.userRepository.findOne({
       where: { regtoken: token }
     });
@@ -83,13 +86,10 @@ export class AuthController {
     if (user) {
       user.status = true;
       user.regtoken = "";
-      user.password = await this.passwordHasher.hashPassword(user.password);
 
       this.userRepository.replaceById(user.id, user);
       //return user.email + " confirmado correctamente";
-    }
-    //if it exists, throw error
-    throw new HttpErrors.NotFound("Token not found");
+    } else throw new HttpErrors.NotFound(`Token ${token} not found`);
   }
 
   @post('/auth/login', {
@@ -108,7 +108,7 @@ export class AuthController {
 
     const user = await this.userRepository.findOne({ where: { id: credentials.username } });
     if (!user) throw new HttpErrors.Unauthorized('Invalid credentials');
-
+    //console.log(user);
     const isPasswordMatched = await this.passwordHasher.comparePassword(
       credentials.password,
       user.password,
@@ -151,6 +151,7 @@ export class AuthController {
       if (!user.status) throw new HttpErrors.Unauthorized("User not confirmated");
       //user.status = true;
       user.regtoken = await this.passwordHasher.hashPassword(user.email + "recoveryToken");
+      user.regtoken = user.regtoken.replace(/[^\w\s]/gi, '');
 
       await (new Mailer).sendMail({
         to: user.email,
