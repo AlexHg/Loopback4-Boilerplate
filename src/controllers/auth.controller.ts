@@ -21,9 +21,16 @@ export class AuthController {
     @inject(PasswordHasherBindings.PASSWORD_HASHER) public passwordHasher: PasswordHasher,
   ) { }
 
-  @post('/auth/register')
+  @post('/auth/register', {
+    responses: {
+      '200': { description: 'Retorna el usuario y email' },
+      '400': { description: 'Faltan datos en su petición' },
+      '409': { description: 'Error de conflicto: El Email ya existe' }
+    }
+  })
   @secured(SecuredType.PERMIT_ALL)
   async register(@requestBody({
+    description: "<h3>Registro publico de usuarios.</h3><p>Cuando el usuario se registra, el api envía un correo al usuario con un token de confirmación para usarse en GET /auth/confirm/{token}.</p>",
     content: {
       'application/json': {
         schema: getModelSchemaRef(User, {
@@ -32,7 +39,9 @@ export class AuthController {
         }),
       },
     },
-  }) user: User): Promise<User> {
+  }) user: User): Promise<Object> {
+    if (!user.id || !user.password || !user.email) throw new HttpErrors.BadRequest('Missing Username, Password or Email');
+
     const foundUser = await this.userRepository.findOne({
       where: { email: user.email }
     });
@@ -49,15 +58,31 @@ export class AuthController {
         html: `auth/recovery/${user.regtoken}`
       });
 
-      return await this.userRepository.create(user);
+      const newUser = await this.userRepository.create(user);
+      return { id: newUser.id, email: newUser.email };
     }
     //if it exists, throw error
     throw new HttpErrors.Conflict("Email value is already taken (ScopedCode:1)");
   }
 
-  @post('/auth/confirm/{token}')
+  @get('/auth/confirm/{token}', {
+    responses: {
+      '200': { description: 'No retorna nada, la operación fue exitosa' },
+      '404': { description: 'El token ingresado no exite' }
+    }
+  })
   @secured(SecuredType.PERMIT_ALL)
-  async confirm(@param.path.string('token') token: string): Promise<void> {
+  async confirm(@requestBody({
+    description: "<h3>Confirmación publica de usuarios.</h3><p>Los usuarios registrados recibirán un correo electrónico con un token que deberán ingresar como parametro; de esta petición de forma que posteriormente podrán iniciar sesión</p>",
+    content: {
+      'application/json': {
+        schema: getModelSchemaRef(User, {
+          title: 'NewUser',
+          exclude: ['status', 'regtoken'],
+        }),
+      },
+    },
+  }) @param.path.string('token') token: string): Promise<void> {
     const user = await this.userRepository.findOne({
       where: { regtoken: token }
     });
@@ -72,23 +97,24 @@ export class AuthController {
       //return user.email + " confirmado correctamente";
     }
     //if it exists, throw error
-    throw new HttpErrors.Conflict("Token does not exists");
+    throw new HttpErrors.NotFound("Token not found");
   }
 
   @post('/auth/login')
   @secured(SecuredType.PERMIT_ALL)
   async login(@requestBody() credentials: Credentials) {
+
     if (!credentials.username || !credentials.password) throw new HttpErrors.BadRequest('Missing Username or Password');
+
     const user = await this.userRepository.findOne({ where: { id: credentials.username } });
     if (!user) throw new HttpErrors.Unauthorized('Invalid credentials');
 
-    //console.log(user);
-    //const isPasswordMatched = user.password === credentials.password;
     const isPasswordMatched = await this.passwordHasher.comparePassword(
       credentials.password,
       user.password,
     );
     if (!isPasswordMatched) throw new HttpErrors.Unauthorized('Invalid credentials');
+    if (!user.status) throw new HttpErrors.Unauthorized('User not confirmated');
 
     const tokenObject = { username: credentials.username };
     const token = await signAsync(tokenObject, JWT_SECRET);
@@ -112,6 +138,7 @@ export class AuthController {
 
     // if not exists
     if (user) {
+      user.status = true;
       user.regtoken = await this.passwordHasher.hashPassword(user.email + "recoveryToken");
 
       await (new Mailer).sendMail({

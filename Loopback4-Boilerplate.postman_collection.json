@@ -95,9 +95,12 @@
 					"response": []
 				},
 				{
-					"name": "auth/confirm/token",
+					"name": "auth/confirm/{token}",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
 					"request": {
-						"method": "POST",
+						"method": "GET",
 						"header": [
 							{
 								"key": "Content-Type",
