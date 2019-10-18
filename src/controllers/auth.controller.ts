@@ -24,7 +24,7 @@ export class AuthController {
   @post('/auth/register', {
     responses: {
       '200': { description: 'Retorna el usuario y email' },
-      '400': { description: 'Faltan datos en su petición' },
+      '400': { description: 'Faltan datos en la petición' },
       '409': { description: 'Error de conflicto: El Email ya existe' }
     }
   })
@@ -74,14 +74,6 @@ export class AuthController {
   @secured(SecuredType.PERMIT_ALL)
   async confirm(@requestBody({
     description: "<h3>Confirmación publica de usuarios.</h3><p>Los usuarios registrados recibirán un correo electrónico con un token que deberán ingresar como parametro; de esta petición de forma que posteriormente podrán iniciar sesión</p>",
-    content: {
-      'application/json': {
-        schema: getModelSchemaRef(User, {
-          title: 'NewUser',
-          exclude: ['status', 'regtoken'],
-        }),
-      },
-    },
   }) @param.path.string('token') token: string): Promise<void> {
     const user = await this.userRepository.findOne({
       where: { regtoken: token }
@@ -100,9 +92,17 @@ export class AuthController {
     throw new HttpErrors.NotFound("Token not found");
   }
 
-  @post('/auth/login')
+  @post('/auth/login', {
+    responses: {
+      '200': { description: 'Retorna datos del usuario, los roles asignados y el token de JWT' },
+      '400': { description: 'Faltan datos en la peticiòn' },
+      '401': { description: 'Los datos ingresados son invalidos' },
+    }
+  })
   @secured(SecuredType.PERMIT_ALL)
-  async login(@requestBody() credentials: Credentials) {
+  async login(@requestBody({
+    description: "<h3>Inicio de sesión publico.</h3><p>Los usuarios registrados que han confirmado su cuenta podrán iniciar sesión</p>",
+  }) credentials: Credentials) {
 
     if (!credentials.username || !credentials.password) throw new HttpErrors.BadRequest('Missing Username or Password');
 
@@ -129,16 +129,27 @@ export class AuthController {
     };
   }
 
-  @post('/auth/recovery')
+  @post('/auth/recovery', {
+    responses: {
+      '200': { description: 'No retorna nada, la operación ha sido exitosa y el correo ha sido enviado' },
+      '400': { description: 'Faltan datos en la peticiòn' },
+      '401': { description: 'El usuario no ha sido confirmado por el correo electrónico' },
+      '404': { description: 'El correo electrónico no existe' },
+    }
+  })
   @secured(SecuredType.PERMIT_ALL)
-  async recovery(@requestBody() req: { email: string }): Promise<void> {
+  async recovery(@requestBody({
+    description: "<h3>Recuperación publica de contraseña.</h3><p>Los usuarios que se han registrados y que hayan confirmado su cuenta previamente podrán recuperar contraseña, al ingresar su correo electrónico se enviará un correo electronico con un token de recuperación</p>",
+  }) req: { email: string }): Promise<void> {
+    if (!req.email) throw new HttpErrors.BadRequest("Missing Email");
     const user = await this.userRepository.findOne({
       where: { email: req.email }
     });
 
     // if not exists
     if (user) {
-      user.status = true;
+      if (!user.status) throw new HttpErrors.Unauthorized("User not confirmated");
+      //user.status = true;
       user.regtoken = await this.passwordHasher.hashPassword(user.email + "recoveryToken");
 
       await (new Mailer).sendMail({
@@ -149,13 +160,19 @@ export class AuthController {
 
       this.userRepository.replaceById(user.id, user);
 
-    } else throw new HttpErrors.Conflict("Email does not exist");
+    } else throw new HttpErrors.NotFound("Email does not exist");
   }
 
-
-  @post('/auth/recovery-confirm')
+  @post('/auth/recovery-confirm', {
+    responses: {
+      '200': { description: 'No retorna nada, la operación ha sido exitosa y la contraseña ha sido cambiada' },
+      '404': { description: 'Token ingresado no existe' },
+    }
+  })
   @secured(SecuredType.PERMIT_ALL)
-  async recoveryConfirm(@requestBody() req: { token: string, password: string }): Promise<void> {
+  async recoveryConfirm(@requestBody({
+    description: "<h3>Confirmación de recuperación publica de contraseña.</h3><p>Los usuarios que han recibido un correo electrónico con el token de recuperación de contraseña podrán ingresar una nueva contraseña</p>",
+  }) req: { token: string, password: string }): Promise<void> {
     const user = await this.userRepository.findOne({
       where: { regtoken: req.token }
     });
@@ -167,6 +184,6 @@ export class AuthController {
 
       this.userRepository.replaceById(user.id, user);
 
-    } else throw new HttpErrors.Conflict("Token does not exist");
+    } else throw new HttpErrors.NotFound("Token does not exist");
   }
 }

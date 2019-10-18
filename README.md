@@ -10,6 +10,9 @@ The capabilities that AlexHg/Loopback4-Boilerplate contemplates in this reposito
 5. Environment variables (.env file)
 6. DataFixtures
 
+Extras
+1. (Dependencia de nodemon) Code watcher
+
 ## Instalation
 Cloning the repositorie
 ```
@@ -23,6 +26,7 @@ git remote add origin <YOUR_OWN_REPOSITORY_URL>
 Dependencies instalation
 ```
 npm i
+npm install -g nodemon
 ```
 
 ## Running & Configuration
