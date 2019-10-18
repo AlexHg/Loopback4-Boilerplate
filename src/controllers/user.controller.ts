@@ -1,4 +1,4 @@
-import { get, post, requestBody, HttpErrors } from '@loopback/rest';
+import { get, post, requestBody, HttpErrors, getModelSchemaRef } from '@loopback/rest';
 import { User } from '../models';
 import { UserRepository, UserRoleRepository } from '../repositories';
 import { repository } from '@loopback/repository';
@@ -21,13 +21,24 @@ export class UserController {
 
   @post('/users/create')
   @secured(SecuredType.HAS_ANY_ROLE, ["ADMIN", "ADMIN2"])
-  async createUser(@requestBody() user: User): Promise<User> {
+  async createUser(@requestBody({
+    content: {
+      'application/json': {
+        schema: getModelSchemaRef(User, {
+          title: 'NewUser',
+          exclude: ['status', 'regtoken'],
+        }),
+      },
+    },
+  }) user: User): Promise<User> {
     const foundUser = await this.userRepository.findOne({
       where: { email: user.email }
     });
 
     // if not exists
     if (!foundUser) {
+      user.status = true;
+      user.regtoken = "";
       user.password = await this.passwordHasher.hashPassword(user.password);
       return await this.userRepository.create(user);
     }
@@ -45,7 +56,7 @@ export class UserController {
     // (@jannyHou)FIXME: explore a way to generate OpenAPI schema
     // for symbol property
     currentUserProfile.id = currentUserProfile[securityId];
-    console.log(currentUserProfile);
+    //console.log(currentUserProfile);
     delete currentUserProfile[securityId];
     return currentUserProfile;
   }
@@ -62,7 +73,7 @@ export class UserController {
     // (@jannyHou)FIXME: explore a way to generate OpenAPI schema
     // for symbol property
     currentUserProfile.id = currentUserProfile[securityId];
-    console.log(currentUserProfile);
+    //console.log(currentUserProfile);
     delete currentUserProfile[securityId];
 
     const user = await this.userRepository.findOne({ where: { id: currentUserProfile.id } });

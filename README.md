@@ -33,7 +33,7 @@ cp .env.example .env
 
 Run the project
 ```
-npm start
+npm run start:watch
 ```
 
 
