@@ -61,7 +61,7 @@
     "@types/nodemailer": "^6.2.1",
     "bcryptjs": "^2.4.3",
     "dotenv": "^8.1.0",
-    "jsonwebtoken": "^8.5.1",
+    "jsonwebtoken": "^9.0.0",
     "loopback-connector-mongodb": "^5.0.1",
     "mail": "^0.2.3",
     "nodemailer": "^6.3.1",
